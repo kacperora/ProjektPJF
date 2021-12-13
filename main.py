@@ -7,8 +7,8 @@ import re
 import pandas as pd
 import random
 
-class Unit:
-    def __init__(self, name, price, ws, bs, s, t, maxw, a, ld, sv, mincount, maxcount, move):
+class UnitClass:
+    def __init__(self, name, price, ws, bs, s, t, maxw, a, ld, sv, mincount, maxcount, move, statsdrop = False):
         self.name = name
         self.mincount = mincount
         self.maxcount = maxcount
@@ -22,8 +22,29 @@ class Unit:
         self.a = a
         self.ld = ld
         self.sv = sv
+        self.statsdrop = statsdrop
+        if self.statsdrop:
+            self.droptable = []
+
+
+    def hitMelee(self, modifier):
+        roll = random.randint(1,6)
+        target = self.ws[0]
+        if roll + modifier >= target | roll == 6:
+            return True
+        if roll == 1: return False
+        return False
+
+    def hitRange(self, modifier):
+        roll = random.randint(1,6)
+        target = self.bs[0]
+        if roll + modifier >= target | roll == 6:
+            return True
+        if roll == 1: return False
+        return False
+
     def __repr__(self):
-        return f"{self.name}, "
+        return f"{self.name}, {self.price}"
 
 class Weapon:
     d = 0
@@ -53,7 +74,7 @@ def loadUnitTable(table):
     index1 = table.find('">')+2
     index2 = table.find('<', index1)
 
-    indexname1 = table.find("</div>",table.find("PriceTag"))+6
+    indexname1 = table.find("</div>", table.find("PriceTag"))+6
     indexname2 = table.find("</span>", indexname1)
     output.append(table[indexname1:indexname2])
     while index1 != -1:
@@ -66,13 +87,16 @@ def loadUnitTable(table):
     return output
 
 def loadUnit(array):
-    if array[1].find('‑') != -1:
+    if (array[1] == ''):
+        return
+    if array[1].find('‑') == -1:
         min = array[1]
         max = array[1]
     else:
         min = (array[1].split("‑"))[0]
         max = (array[1].split("‑"))[1]
-    unit = Unit(name=array[0], mincount=min, maxcount=max, price=array[2],
+
+    unit = UnitClass(name=array[0], mincount=min, maxcount=max, price=array[2],
                 move = array[3], ws = array[4], bs = array[5], s=array[6], t=array[7], maxw=array[8],a=array[9],
                 ld = array[10], sv = array[11])
     LoadedUnits.append(unit)
@@ -90,27 +114,38 @@ def loadResources():
     #print(unitlist)
 
 def findUnitUrl(name):
-    link = unitlist.loc[name, 'link']
-    return link
+    try:
+        link = unitlist.loc[name, 'link']
+        return link
+    except KeyError:
+        return 0
 
 
-if __name__ == '__main__':
-    loadResources()
-    LoadedUnits = []
-    #seed(0)
-    page = urlopen(findUnitUrl('Custodian Guard'))
+def findunit(name):
+    if findUnitUrl(name) == 0:
+        exit
+    page = urlopen(findUnitUrl(name))
     html_bytes = page.read()
     code = html_bytes.decode("utf-8")
     title_index = 0
+    end_index = 0
     #print(code)
     while code.find('<tr class="pTable2_short">', title_index) != -1:
-        title_index = code.find('<tr class="pTable2_short">')
-        title_index = code.find('<tr>')
+        title_index = code.find('<tr class="pTable2_short">',end_index)
+        title_index = code.find('<tr>', title_index)
         start_index = title_index + len('<tr>')
         end_index = code.find('</tr>',start_index)
         table = code[start_index:end_index]
         table = loadUnitTable(table)
         loadUnit(table)
+
+if __name__ == '__main__':
+    loadResources()
+    LoadedUnits = []
+    findunit('Custodian Guard')
+    findunit('Commissar Yarrick')
+    #seed(0)
+
     print(LoadedUnits)
 
 
