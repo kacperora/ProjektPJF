@@ -4,13 +4,15 @@
 from urllib.request import urlopen
 import html
 import re
+import pandas as pd
 import random
 
 class Unit:
-    def __init__(self, name, price, ws, bs, s, t, maxw, a, ld, sv, mincount, maxcount):
+    def __init__(self, name, price, ws, bs, s, t, maxw, a, ld, sv, mincount, maxcount, move):
         self.name = name
         self.mincount = mincount
         self.maxcount = maxcount
+        self.move = move
         self.price = price
         self.ws = ws
         self.bs = bs
@@ -20,6 +22,8 @@ class Unit:
         self.a = a
         self.ld = ld
         self.sv = sv
+    def __repr__(self):
+        return f"{self.name}, "
 
 class Weapon:
     d = 0
@@ -62,24 +66,54 @@ def loadUnitTable(table):
     return output
 
 def loadUnit(array):
-    return
+    if array[1].find('‑') != -1:
+        min = array[1]
+        max = array[1]
+    else:
+        min = (array[1].split("‑"))[0]
+        max = (array[1].split("‑"))[1]
+    unit = Unit(name=array[0], mincount=min, maxcount=max, price=array[2],
+                move = array[3], ws = array[4], bs = array[5], s=array[6], t=array[7], maxw=array[8],a=array[9],
+                ld = array[10], sv = array[11])
+    LoadedUnits.append(unit)
 
+def loadResources():
+    global factions, unitlist
+    factions = pd.read_csv('http://wahapedia.ru/wh40k9ed/Factions.csv', delimiter='|', index_col='id')
+    factions = factions.drop(columns={'Ссылка', 'link'})
+    unitlist = pd.read_csv('http://wahapedia.ru/wh40k9ed/Datasheets.csv', delimiter='|', index_col='name')
+    unitlist = unitlist.drop(columns = {'id','source_id','role','unit_composition','power_points','transport','priest',
+                                        'psyker', 'open_play_only','crusade_only','virtual','Cost','cost_per_unit'})
+    factions.drop(factions.columns[factions.columns.str.contains('unnamed', case=False)], axis=1, inplace=True)
+    unitlist.drop(unitlist.columns[unitlist.columns.str.contains('unnamed', case=False)], axis=1, inplace=True)
+    #print(factions)
+    #print(unitlist)
 
+def findUnitUrl(name):
+    link = unitlist.loc[name, 'link']
+    return link
 
 
 if __name__ == '__main__':
+    loadResources()
+    LoadedUnits = []
     #seed(0)
-    page = urlopen("https://wahapedia.ru/wh40k9ed/factions/astra-cartographica/Voidsmen-at-arms")
+    page = urlopen(findUnitUrl('Custodian Guard'))
     html_bytes = page.read()
     code = html_bytes.decode("utf-8")
+    title_index = 0
     #print(code)
-    title_index = code.find('<tr class="pTable2_short">')
-    title_index = code.find('<tr>')
-    start_index = title_index + len('<tr>')
-    end_index = code.find('</tr>',start_index)
-    table = code[start_index:end_index]
-    print (table)
-    table = loadUnitTable(table)
-    print(table)
+    while code.find('<tr class="pTable2_short">', title_index) != -1:
+        title_index = code.find('<tr class="pTable2_short">')
+        title_index = code.find('<tr>')
+        start_index = title_index + len('<tr>')
+        end_index = code.find('</tr>',start_index)
+        table = code[start_index:end_index]
+        table = loadUnitTable(table)
+        loadUnit(table)
+    print(LoadedUnits)
+
+
+
 
 
