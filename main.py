@@ -7,23 +7,27 @@ import re
 import random
 
 class Unit:
-    def __init__(self, name, price, ws, bs, s, t, maxw, a, ld, sv):
-        name = name
-        price = price
-        ws = ws
-        bs = bs
-        s = s
-        t = t
-        maxw = maxw
-        a = a
-        ld = ld
-        sv = sv
+    def __init__(self, name, price, ws, bs, s, t, maxw, a, ld, sv, mincount, maxcount):
+        self.name = name
+        self.mincount = mincount
+        self.maxcount = maxcount
+        self.price = price
+        self.ws = ws
+        self.bs = bs
+        self.s = s
+        self.t = t
+        self.maxw = maxw
+        self.a = a
+        self.ld = ld
+        self.sv = sv
 
 class Weapon:
     d = 0
-    def __init__(self, name, range, s, ap, D):
+    def __init__(self, name, range, shots, type, s, ap, D):
         self.name = name
         self.range = range
+        self.type = type
+        self.shots = shots
         self.s = s
         self.ap = ap
         self.d = D
@@ -58,12 +62,11 @@ def loadUnitTable(table):
     return output
 
 def loadUnit(array):
+    return
 
 
 
 
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     #seed(0)
     page = urlopen("https://wahapedia.ru/wh40k9ed/factions/astra-cartographica/Voidsmen-at-arms")
