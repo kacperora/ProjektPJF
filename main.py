@@ -115,11 +115,11 @@ def loadUnit(array, cost = 0):
         bs = ''.join([i for i in array[x][4] if i.isdigit()])
         s = array[x][5]
         t = array[x][6]
-        if len(array[x][7].split('-')) == 2 and array[x][7].split('-')[0] != 1:
+        if len(array[x][7].split('-')) == 2 and array[x][7].split('-')[0] != '1':
             minw = array[x][7].split('-')[0]
             maxw = array[x][7].split('-')[1]
         else:
-            maxw = array[x][7].split('-')[0]
+            maxw = array[x][7].split('-')[1]
             minw = 0
         a = array[x][8]
         ld= array[x][9]
