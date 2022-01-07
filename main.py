@@ -6,25 +6,31 @@ import html
 import re
 import pandas as pd
 import random
+from bs4 import BeautifulSoup
 
-class UnitClass:
-    def __init__(self, name, price, ws, bs, s, t, maxw, a, ld, sv, mincount, maxcount, move, statsdrop = False):
-        self.name = name
-        self.mincount = mincount
-        self.maxcount = maxcount
+class statline:
+    def __init__(self, ws, bs, s, t, maxw, minw, a, ld, sv, move):
         self.move = move
-        self.price = price
         self.ws = ws
         self.bs = bs
         self.s = s
         self.t = t
         self.maxw = maxw
+        self.minw = minw
         self.a = a
         self.ld = ld
         self.sv = sv
+
+class UnitClass:
+    def __init__(self, name, maxw,mincount, stats, maxcount, statsdrop = False):
+        self.name = name
+        self.maxw = maxw
         self.statsdrop = statsdrop
         if self.statsdrop:
-            self.droptable = []
+            self.statline = []
+        else:
+            self.statline = stats
+
 
 
     def hitMelee(self, modifier):
@@ -32,7 +38,8 @@ class UnitClass:
         target = self.ws[0]
         if roll + modifier >= target | roll == 6:
             return True
-        if roll == 1: return False
+        if roll == 1:
+            return False
         return False
 
     def hitRange(self, modifier):
@@ -40,7 +47,8 @@ class UnitClass:
         target = self.bs[0]
         if roll + modifier >= target | roll == 6:
             return True
-        if roll == 1: return False
+        if roll == 1:
+            return False
         return False
 
     def __repr__(self):
@@ -65,8 +73,6 @@ class Weapon:
             #sum = a[0]*random.randint(1,a[1])
 
 
-
-
 def loadUnitTable(table):
     output = []
     table = html.unescape(table)
@@ -87,19 +93,11 @@ def loadUnitTable(table):
     return output
 
 def loadUnit(array):
-    if (array[1] == ''):
-        return
-    if array[1].find('‑') == -1:
-        min = array[1]
-        max = array[1]
-    else:
-        min = (array[1].split("‑"))[0]
-        max = (array[1].split("‑"))[1]
+    print(array)
+    name = ''.join([i for i in array[0][1] if not i.isdigit()])
+    maxw = array[0][7].split('-')[-1]
 
-    unit = UnitClass(name=array[0], mincount=min, maxcount=max, price=array[2],
-                move = array[3], ws = array[4], bs = array[5], s=array[6], t=array[7], maxw=array[8],a=array[9],
-                ld = array[10], sv = array[11])
-    LoadedUnits.append(unit)
+
 
 def loadResources():
     global factions, unitlist
@@ -126,27 +124,33 @@ def findunit(name):
         exit
     page = urlopen(findUnitUrl(name))
     html_bytes = page.read()
-    code = html_bytes.decode("utf-8")
-    title_index = 0
-    end_index = 0
-    #print(code)
-    while code.find('<tr class="pTable2_short">', title_index) != -1:
-        title_index = code.find('<tr class="pTable2_short">',end_index)
-        title_index = code.find('<tr>', title_index)
-        start_index = title_index + len('<tr>')
-        end_index = code.find('</tr>',start_index)
-        table = code[start_index:end_index]
-        table = loadUnitTable(table)
-        loadUnit(table)
+    code = BeautifulSoup(html_bytes.decode("utf-8"), 'html.parser')
+    code = code.findAll('table')[0]
+    code = code.findAll('tr')
+    unitStats = []
+    temp = code[2].get_text()
+    temp = temp.splitlines()
+    unitStats.append(temp)
+    for x in range(4, len(code), 2):
+        temp = code[x].get_text()
+        temp = temp.splitlines()
+        if temp[1] == '':
+            unitStats.append(temp)
+        else:
+            loadUnit(unitStats)
+            unitStats = []
+            unitStats.append(temp)
+    loadUnit(unitStats)
+
 
 if __name__ == '__main__':
     loadResources()
     LoadedUnits = []
-    findunit('Custodian Guard')
-    findunit('Commissar Yarrick')
+
+    findunit('Shield-Captain')
     #seed(0)
 
-    print(LoadedUnits)
+    #print(LoadedUnits)
 
 
 
