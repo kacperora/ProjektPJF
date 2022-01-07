@@ -20,14 +20,19 @@ class statline:
         self.a = a
         self.ld = ld
         self.sv = sv
+    def __repr__(self):
+        return f'{self.move}" {self.ws}+ {self.bs}+ {self.s} {self.t} {self.minw}-{self.maxw} {self.a} {self.ld} {self.sv}+'
 
 class UnitClass:
-    def __init__(self, name, maxw,mincount, stats, maxcount, statsdrop = False):
+    def __init__(self, name, maxw, stats,price, statsdrop = False ):
         self.name = name
         self.maxw = maxw
+        self.price = price
         self.statsdrop = statsdrop
         if self.statsdrop:
             self.statline = []
+            for i in stats:
+                self.statline.append(i)
         else:
             self.statline = stats
 
@@ -52,7 +57,10 @@ class UnitClass:
         return False
 
     def __repr__(self):
-        return f"{self.name}, {self.price}"
+        output = f"{self.name}, {self.price}"
+        for i in self.statline:
+            output= output + f'\n{i}'
+        return output
 
 class Weapon:
     d = 0
@@ -92,11 +100,33 @@ def loadUnitTable(table):
         index2 = table.find('<', index1)
     return output
 
-def loadUnit(array):
-    print(array)
+def loadUnit(array, cost = 0):
+    #print(array)
+    price = cost
     name = ''.join([i for i in array[0][1] if not i.isdigit()])
     maxw = array[0][7].split('-')[-1]
-
+    stats = []
+    if len(array) == 1:
+        statsdrop = False
+    else:
+        statsdrop = True
+    for x in range(0, len(array)):
+        ws =  ''.join([i for i in array[x][3] if i.isdigit()])
+        bs = ''.join([i for i in array[x][4] if i.isdigit()])
+        s = array[x][5]
+        t = array[x][6]
+        if len(array[x][7].split('-')) == 2 and array[x][7].split('-')[0] != 1:
+            minw = array[x][7].split('-')[0]
+            maxw = array[x][7].split('-')[1]
+        else:
+            maxw = array[x][7].split('-')[0]
+            minw = 0
+        a = array[x][8]
+        ld= array[x][9]
+        sv = ''.join([i for i in array[x][10] if i.isdigit()])
+        move = ''.join([i for i in array[x][2].split('-')[0] if i.isdigit()])
+        stats.append(statline(ws,bs,s,t,maxw,minw,a,ld,sv,move))
+    LoadedUnits.append(UnitClass(name,maxw,stats,price,statsdrop))
 
 
 def loadResources():
@@ -146,11 +176,11 @@ def findunit(name):
 if __name__ == '__main__':
     loadResources()
     LoadedUnits = []
-
-    findunit('Shield-Captain')
+    findunit('Ares Gunship')
+    #findunit('Shield-Captain')
     #seed(0)
 
-    #print(LoadedUnits)
+    print(LoadedUnits)
 
 
 
