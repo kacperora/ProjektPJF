@@ -15,8 +15,10 @@ from tkinter import ttk
 class Player:
 
     def __init__(self):
-        self.unit = None
+        self.units = None
         return
+
+
 
 
 class MainWindow:
@@ -52,7 +54,20 @@ class Unit:
             self.statsnumb += 1
             self.currentstats = self.type.stats[self.statsnumb]
 
-
+class UnitClass:
+    def __init__(self, models):
+        self.models = models
+    def __repr__(self):
+        output = ''
+        for i in self.models:
+            temp = f'{i}\n'
+            temp = temp.translate({ord(c): None for c in '\]\['})
+            if temp[0] == '-':
+                temp.replace(temp[0], "")
+            if temp[-1] == '-':
+                temp.replace(temp[-1], "")
+            output += temp
+        return output
 
 
 class statline:
@@ -73,7 +88,7 @@ class statline:
         return f'{self.move}"\t{self.ws}+\t{self.bs}+\t{self.s}\t{self.t}\t{self.minw}-{self.maxw}\t{self.a}\t{self.ld}\t{self.sv}+'
 
 
-class UnitClass:
+class ModelClass:
     def __init__(self, name, maxw, stats, price, statsdrop=False):
         self.name = name
         self.maxw = maxw
@@ -183,6 +198,7 @@ def loadUnitTable(table):
 def loadUnit(array, cost=0):
     # print(array)
     price = cost
+    LoadedUnits = []
     name = ''.join([i for i in array[0][1] if not i.isdigit()])
     maxw = array[0][7].split('-')[-1]
     stats = []
@@ -209,13 +225,12 @@ def loadUnit(array, cost=0):
         sv = ''.join([i for i in array[x][10] if i.isdigit()])
         move = ''.join([i for i in array[x][2].split('-')[0] if i.isdigit()])
         stats.append(statline(ws, bs, s, t, maxw, minw, a, ld, sv, move))
-    LoadedUnits.append(UnitClass(name, maxw, stats, price, statsdrop))
+    LoadedUnits.append(ModelClass(name, maxw, stats, price, statsdrop))
+    return LoadedUnits
 
 
 def loadResources():
     global factions, unitlist, player1, player2
-    global LoadedUnits
-    LoadedUnits = []
     player1 = Player()
     player2 = Player()
     factions = pd.read_csv('http://wahapedia.ru/wh40k9ed/Factions.csv', delimiter='|')
@@ -245,21 +260,31 @@ def findunit(name):
     html_bytes = page.read()
     code = BeautifulSoup(html_bytes.decode("utf-8"), 'html.parser')
     code = code.findAll('table')[0]
+    prices = code.find_all("div", {"class": "PriceTag"})
+    costs = []
+    for i in range(0, len(prices), 2):
+        costs.append(int(prices[i].get_text()))
     code = code.findAll('tr')
+    #print(costs)
     unitStats = []
+    table = []
     temp = code[2].get_text()
     temp = temp.splitlines()
     unitStats.append(temp)
+    i = 0
     for x in range(4, len(code), 2):
         temp = code[x].get_text()
         temp = temp.splitlines()
         if temp[1] == '':
             unitStats.append(temp)
         else:
-            loadUnit(unitStats)
+            table.append(loadUnit(unitStats, costs[i]))
+            i += 1
             unitStats = []
             unitStats.append(temp)
-    loadUnit(unitStats)
+    table.append(loadUnit(unitStats, costs[i]))
+    unit = UnitClass(table)
+    return unit
 
 
 def createUI():
@@ -321,14 +346,13 @@ def cBoxLoad(cboxin, cboxout):
 
 
 def selectUnit(player, name, label):
-    findunit(name)
-    player.unit = LoadedUnits
-    print(LoadedUnits)
+    player.units = findunit(name)
+    text = f'{player.units}'
+    
+    #print(text)
     a = ''
-    for i in LoadedUnits:
-        a = a + f'{i}\n'
     #print(a)
-    label.config(text = a)
+    label.config(text = text)
     LoadedUnits.clear()
 
 
