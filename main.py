@@ -110,7 +110,8 @@ class statline:
 
     def __repr__(self):
         return f'{self.move}"\t{self.ws}+\t{self.bs}+\t{self.s}\t{self.t}\t{self.minw}-{self.maxw}\t{self.a}\t{self.ld}\t{self.sv}+'
-
+    def __str__(self):
+        return f'{self.move}"\t{self.ws}+\t{self.bs}+\t{self.s}\t{self.t}\t{self.minw}-{self.maxw}\t{self.a}\t{self.ld}\t{self.sv}+'
 
 class ModelClass:
     def __init__(self, name, maxw, stats, price, statsdrop=False):
@@ -181,7 +182,10 @@ class Weapon:
             a = map(int, re.findall(r'\d+', self.d))
             # if
             # sum = a[0]*random.randint(1,a[1])
-
+    def __repr__(self):
+        return f'{self.name}\t{self.range}\t{self.type}\t{self.shots}\t{self.s}\t{self.ap}\t{self.d}'
+    def __str__(self):
+        return f'{self.name}\t{self.range}\t{self.type}\t{self.shots}\t{self.s}\t{self.ap}\t{self.d}'
 
 def resolveRoll(input, takeavg=False):
     number = 0
@@ -281,6 +285,62 @@ def findUnitUrl(name):
     except KeyError:
         return 0
 
+def getWeaponName(temp):
+    try:
+        i = 0
+        if bool(re.search(r'\d', temp[i])):
+            i+=1
+        name = ''
+        while i < len(temp) and temp[i] != 'Melee' and temp[i][0].isdigit() == False:
+            if temp[i] != '\\xa0-':
+                name += temp[i] + ' '
+            i += 1
+        if name == 'Blast':
+            return 0
+        #print('weapon loaded')
+        #print(weapon)
+        return name
+    except IndexError:
+        #print('ping')
+        return 0
+
+def loadWeapon(temp):
+    #print(temp)
+    try:
+        i = 0
+        if bool(re.search(r'\d', temp[i])):
+            i+=1
+        name = ''
+        while i < len(temp) and temp[i] != 'Melee' and temp[i][0].isdigit() == False:
+            if temp[i] != '\\xa0-':
+                name += temp[i] + ' '
+            i += 1
+        range = temp[i]
+        type = ''
+        while i < len(temp)  and temp[i][0].isdigit() == False:
+            type += temp[i] + ' '
+            if 'Melee' in type: break
+            i += 1
+        i += 1
+        shots = temp[i]
+        i += 1
+        S = temp[i]
+        i += 1
+        AP = temp[i]
+        i += 1
+        DMG = temp[i]
+        if name.startswith('Blast'):
+            return 0
+        weapon = Weapon(name, range, shots, type, S, AP, DMG)
+
+        #print('weapon loaded')
+        #print(weapon)
+        return weapon
+    except IndexError:
+        #print('ping')
+        return 0
+
+
 
 def findunit(name):
     if findUnitUrl(name) == 0:
@@ -318,23 +378,38 @@ def findunit(name):
 
     #TODO: testować na bjornie - uwaga na dispersed/focused
     weaponStats = []
-    table = []
-    temp = weaponscode[2].get_text(separator=" ")
-    #temp = temp.splitlines()
-    print(temp+'/n')
-    weaponStats.append(temp)
-    i = 0
-    for x in range(4, len(weaponscode)):
+    for x in range(2, len(weaponscode)):
         temp = weaponscode[x].get_text(separator=" ")
-        #temp = temp.splitlines()
-        print(temp)
-        #if temp[1] == '':
-            #unitStats.append(temp)
-        #else:
-            #table.append(loadUnit(unitStats, costs[i]))
-            #i += 1
-            #unitStats = []
-            #unitStats.append(temp)
+        temp = temp.split(' ')
+        temp[:] = [x for x in temp if x]
+        #print(temp)
+        if temp[0] == '\xa0-':
+            i = x
+            while weaponscode[i].get_text(separator=" ").split(' ')[0] == '\xa0-' or weaponscode[i].get_text(separator=" ").split(' ')[0] == 'Blast':
+                i -= 1
+            weapon_name = ''
+            print(weaponscode[i].get_text(separator=" ").split(' '))
+            for str in weaponscode[i].get_text(separator=" ").split(' '):
+                if str == 'Blast' or str == 'Before': break
+                weapon_name += str + ' '
+            #print(weapon_name)
+        #if temp.count('Melee') != 0 or temp.count('%d+'):
+        #    print(temp)
+        weapon = loadWeapon(temp)
+        if weapon != 0:
+            if weapon.name.startswith('Each') or weapon.name.startswith('If') or weapon.name.startswith('Blast'):
+                weapon = 0
+            if weapon != 0:
+                if temp[0] == '\xa0-':
+                    #print('ping')
+                    weapon.name = weapon_name + weapon.name
+            #    weapon = 0
+            #if weapon != 0:
+            print(weapon)
+            weaponStats.append(weapon)
+    weaponStats.append(Weapon('Close combat Weapon', 'Melee', 'Melee', 'Melee', 'User', 0, -1))
+
+
     return unit
 
 
