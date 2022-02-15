@@ -22,13 +22,14 @@ class Player:
 
     def setModels(self, amounts):
         a = 0
+
         for i in self.units.modelsavailable:
             for x in range(int(amounts[a])):
                 model = Model(i[0])
                 model.weapons = [[0]] * len(self.units.weapons)
                 self.models.append(model)
-                a += 1
-        self.unitcount = a
+                self.unitcount += 1
+            a += 1
         return
 
     def __str__(self):

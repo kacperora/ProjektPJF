@@ -81,7 +81,6 @@ def finishweaponsselection(player):
                 pass
 
 
-
 def switchPlayer():
     global activeplayer
     if activeplayer == firstplayer:
@@ -109,20 +108,21 @@ def tryAttack(bs, modifiers, reroll='none'):
         return False
 
 
-def victory(player):
+def victory():
     global status
     status = 'summary'
     refreshUI()
-    log(f"victory for {player.name}")
 
 
 def resolveMeleeAttack(ws, attackcount, weaponstr, target, modifiers, DMG, ap, str, targetplayer, reroll='none',
                        rerollw='none', rerollarm='none'):
     strength = meleeStrength(weaponstr, str)
+    if targetplayer.unitcount < 1:
+        victory()
     attackcount = resolveRoll(attackcount)
     if target.destroyed:
         selectedunit = targetplayer.models[random.randint(0, len(targetplayer.models) - 1)]
-        while selectedunit.destroyed:
+        while selectedunit.destroyed and targetplayer.unitcount > 0:
             selectedunit = targetplayer.models[random.randint(0, len(targetplayer.models) - 1)]
             resolveMeleeAttack(ws, attackcount, weaponstr, target, modifiers, DMG, ap, str, targetplayer, reroll,
                                rerollw, rerollarm)
@@ -142,29 +142,27 @@ def resolveMeleeAttack(ws, attackcount, weaponstr, target, modifiers, DMG, ap, s
                         targetplayer.unitdead += 1
                         targetplayer.points_lost += int(target.type.price)
                         if targetplayer.unitcount == 0:
-                            victory(player1)
+                            victory()
 
                         elif i < attackcount - 1:
-                            log(f"{attackcount - (i + 1)} shots left, choosing random new target")
+                            log(f"{attackcount - (i + 1)} attacks left, choosing random new target")
                             selectedunit = player2.models[random.randint(0, len(player2.models) - 1)]
                             while selectedunit.destroyed:
                                 selectedunit = player2.models[random.randint(0, len(player2.models) - 1)]
                                 resolveMeleeAttack(ws, attackcount - i, weaponstr, target, modifiers, DMG, ap, str,
-                                                   reroll,
-                                                   rerollw, rerollarm)
+                                                   targetplayer, reroll, rerollw, rerollarm)
                         if activeplayer == player2:
                             player1.unitcount -= 1
                             player1.unitdead += 1
                             if player1.unitcount == 0:
-                                victory(player2)
+                                victory()
                             elif i < attackcount - 1:
-                                log(f"{attackcount - (i + 1)} shots left, choosing random new target")
+                                log(f"{attackcount - (i + 1)} attacks left, choosing random new target")
                                 selectedunit = player1.models[random.randint(0, len(player1.models) - 1)]
-                                while selectedunit.destroyed:
+                                while selectedunit.destroyed and targetplayer.unitcount > 0:
                                     selectedunit = player1.models[random.randint(0, len(player1.models) - 1)]
                                     resolveMeleeAttack(ws, attackcount - i, weaponstr, target, modifiers, DMG, ap, str,
-                                                       reroll,
-                                                       rerollw, rerollarm)
+                                                       targetplayer, reroll, rerollw, rerollarm)
                 else:
                     log("\t\t\t\tblocked by armor")
             else:
@@ -176,11 +174,13 @@ def resolveMeleeAttack(ws, attackcount, weaponstr, target, modifiers, DMG, ap, s
 def resolveAttack(bs, attackcount, weaponstr, target, modifiers, DMG, ap, targetplayer, reroll='none', rerollw='none',
                   rerollarm='none'):
     attackcount = resolveRoll(attackcount)
+    if targetplayer.unitcount < 1:
+        victory()
     if target.destroyed:
         selectedunit = targetplayer.models[random.randint(0, len(targetplayer.models) - 1)]
-        while selectedunit.destroyed:
+        while selectedunit.destroyed and targetplayer.unitcount > 0:
             selectedunit = targetplayer.models[random.randint(0, len(targetplayer.models) - 1)]
-            resolveAttack(bs, attackcount, weaponstr, target, modifiers, DMG, ap, reroll,
+            resolveAttack(bs, attackcount, weaponstr, target, modifiers, DMG, ap, targetplayer, reroll,
                           rerollw, rerollarm)
     for i in range(attackcount):
         log(f"\tattack {i + 1} of {attackcount}:")
@@ -198,12 +198,12 @@ def resolveAttack(bs, attackcount, weaponstr, target, modifiers, DMG, ap, target
                         targetplayer.unitdead += 1
                         targetplayer.points_lost += int(target.type.price)
                         if targetplayer.unitcount == 0:
-                            victory(player1)
+                            victory()
 
                         elif i < attackcount - 1:
                             log(f"{attackcount - (i + 1)} shots left, choosing random new target")
                             selectedunit = targetplayer.models[random.randint(0, len(targetplayer.models) - 1)]
-                            while selectedunit.destroyed:
+                            while selectedunit.destroyed and targetplayer.unitcount > 0:
                                 selectedunit = targetplayer.models[random.randint(0, len(targetplayer.models) - 1)]
                                 resolveAttack(bs, attackcount - i, weaponstr, selectedunit, modifiers, DMG, ap,
                                               targetplayer,
@@ -355,7 +355,8 @@ def refreshUI():
             # print(modelweaponarray)
             for i in player.units.weapons:
                 if a < len(modelweaponarray):
-                    rightweaponlist.insert(parent='', index='end', iid=a, text='', values=(i.summary(), modelweaponarray[a]))
+                    rightweaponlist.insert(parent='', index='end', iid=a, text='', values=(i.summary(),
+                                                                                           modelweaponarray[a]))
                 else:
                     weaponcount = 0
                     rightweaponlist.insert(parent='', index='end', iid=a, text='', values=(i.summary(), weaponcount))
@@ -849,7 +850,7 @@ def refreshUI():
                 rightmodellist.insert(parent='', index='end', iid=a, text='', values=(i.type.name, count))
                 lastname = i.type.name
                 count += 1
-                a = a + 1
+                a += 1
             # confirmbutton = Button(rightplayerframe, text='finished', command=lambda: selectModels(player2, my_game))
             # confirmbutton.pack()
             # confirmbutton.place(height=20, width=rightplayerframe.winfo_width(),
@@ -892,6 +893,8 @@ def refreshUI():
         startButton = ttk.Button(diceframe, text="Begin", command=lambda: startbattle(int(rangeentry.get())))
         startButton.place(x=0, y=0, width=diceframe.winfo_width(), height=diceframe.winfo_height())
         status = 'selection'
+        phaselabel['text'] = 'Game configuration'
+        playerlabel['text'] = 'Please select units and game parameters'
         refreshUI()
     if status == 'game':
         phaselabel['text'] = phase + ' phase'
@@ -904,8 +907,8 @@ def refreshUI():
         clearFrame(leftplayerframe)
         clearFrame(rightplayerframe)
         clearFrame(diceframe)
-        distlabel = ttk.Label(diceframe, text = f"distance = {distance}")
-        distlabel.pack(fill = BOTH)
+        distlabel = ttk.Label(diceframe, text=f"distance = {distance}",  font=("Arial", 60), anchor="center")
+        distlabel.pack(fill=BOTH)
 
         # print(distance)
         if phase == 'movement':
@@ -1041,8 +1044,6 @@ def refreshUI():
                 for i in player1.models:
                     leftmodellist.insert(parent='', index='end', iid=a, values=(i.type.name, i.wounds, i.type.maxw))
                     a += 1
-                confirmresultsbutton = ttk.Button(diceframe, command=lambda: switchPlayer())
-                confirmresultsbutton.pack(fill=BOTH)
         if phase == 'charge':
             if activeplayer.has_advanced or distance < 1 or distance > 12:
                 activeplayer.has_charged = False
@@ -1193,7 +1194,7 @@ def refreshUI():
         for i in player1.models:
             if i.destroyed:
                 leftmodellist.insert(parent='', index='end', iid=a, values=(i.type.name, i.type.price),
-                                     tags=('destroyed',))
+                                     tags='destroyed')
             else:
                 leftmodellist.insert(parent='', index='end', iid=a, values=(i.type.name, i.type.price))
             a += 1
@@ -1212,14 +1213,26 @@ def refreshUI():
         rightmodellist.heading("modelname", text="Model", anchor=CENTER)
         rightmodellist.heading("value", text='Value', anchor=CENTER)
         a = 0
-        for i in player1.models:
+        for i in player2.models:
             if i.destroyed:
-                rightmodellist.insert(parent='', index='end', iid=a, values=(i.type.name, i.wounds, i.type.maxw),
+                rightmodellist.insert(parent='', index='end', iid=a, values=(i.type.name, i.type.price),
                                       tags=('destroyed',))
             else:
-                rightmodellist.insert(parent='', index='end', iid=a, values=(i.type.name, i.wounds, i.type.maxw))
+                rightmodellist.insert(parent='', index='end', iid=a, values=(i.type.name, i.type.price))
             a += 1
+        resetbutton = ttk.Button(mainframe, text="start over?", command=reset)
+        resetbutton.pack(fill=BOTH)
         pass
+
+
+def reset():
+    clearFrame(mainframe)
+    clearFrame(diceframe)
+    clearFrame(leftplayerframe)
+    clearFrame(rightplayerframe)
+    logtext['text'] = ''
+    loadResources()
+    refreshUI()
 
 
 def cBoxLoad(cboxin, cboxout):
@@ -1330,10 +1343,9 @@ if __name__ == '__main__':
     mainframe.place(height=screen_height * 0.55, width=screen_width * 0.5, x=screen_width * 0.25,
                     y=screen_height * 0.25)
     root.update()
-    phaselabel = ttk.Label(headframe, font=("Arial", 60))
+    phaselabel = ttk.Label(headframe, font=("Arial", 60), anchor="center")
     phaselabel.place(x=0, y=0, width=headframe.winfo_width(), height=int(headframe.winfo_height() * 2 / 3))
-    playerlabel = ttk.Label(headframe,
-                            font=("Arial", 40))
+    playerlabel = ttk.Label(headframe, font=("Arial", 40), anchor="center")
     playerlabel.place(x=0, y=int(headframe.winfo_height() * 2 / 3), width=headframe.winfo_width(),
                       height=int(headframe.winfo_height() * 1 / 3))
     logframe = ttk.Frame(root, width=screen_width * 0.5, height=screen_height * 0.1)

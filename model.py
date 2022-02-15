@@ -48,6 +48,8 @@ class Model:
                 return True
             else:
                 return False
+        if roll == 1:
+            return False
         if roll + modifiers >= target:
             return True
         else:
@@ -66,10 +68,12 @@ class Model:
                 return False
         if roll + modifiers >= int(self.currentstats.bs) or roll == 6 and roll != 1:
             return True
-        else:
+        elif reroll == 'all':
             roll = random.randrange(1, 7)
             if roll + modifiers >= int(self.currentstats.bs) or roll == 6 and roll != 1:
                 return True
+            return False
+        else:
             return False
 
     def tryMelee(self, modifiers, reroll='none'):
