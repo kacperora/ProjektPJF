@@ -142,7 +142,7 @@ def findunit(name):
                 # print(weapon)
                 print(weapon.name)
                 weaponStats.append(weapon)
-    weaponStats.append(Weapon('Close combat Weapon', 'Melee', 'Melee', 'Melee', 'User', 0, -1))
+    weaponStats.append(Weapon('Close combat Weapon', 'Melee', 'Melee', 'Melee', 'User', 0, 1))
     # print(weaponStats)
     unit = UnitClass(table, weaponStats)
     return unit

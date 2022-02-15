@@ -588,7 +588,7 @@ def refreshUI():
             modelname.place(height=20, width=leftplayerframe.winfo_width() * 0.5, x=0, y=20)
 
             reg = leftplayerframe.register(callback)
-            amount = ttk.Entry(leftplayerframe, validatecommand=(reg, '%P'))
+            amount = ttk.Entry(leftplayerframe, validate="key", validatecommand=(reg, '%P'))
             amount.place(height=20, width=(leftplayerframe.winfo_width() * 0.5) - 10,
                          x=leftplayerframe.winfo_width() * 0.5,
                          y=20)
@@ -646,7 +646,7 @@ def refreshUI():
                              x=leftplayerframe.winfo_width() * 0.33, y=20)
 
             reg = leftplayerframe.register(callback)
-            amount = ttk.Entry(leftplayerframe, validatecommand=(reg, '%P'))
+            amount = ttk.Entry(leftplayerframe, validate="key", validatecommand=(reg, '%P'))
             amount.place(height=20, width=leftplayerframe.winfo_width() * 0.33, x=leftplayerframe.winfo_width() * 0.66,
                          y=20)
 
@@ -739,7 +739,7 @@ def refreshUI():
             rightmodelname = ttk.Label(rightplayerframe)
             rightmodelname.place(height=20, width=rightplayerframe.winfo_width() * 0.5, x=0, y=20)
             reg = mainframe.register(callback)
-            rightamount = ttk.Entry(rightplayerframe, validatecommand=(reg, '%P'))
+            rightamount = ttk.Entry(rightplayerframe, validate="key", validatecommand=(reg, '%P'))
             rightamount.place(height=20, width=rightplayerframe.winfo_width() * 0.5,
                               x=rightplayerframe.winfo_width() * 0.5,
                               y=20)
@@ -800,7 +800,7 @@ def refreshUI():
                                   x=rightplayerframe.winfo_width() * 0.33, y=20)
 
             reg = mainframe.register(callback)
-            rightamount = ttk.Entry(rightplayerframe, validatecommand=(reg, '%P'))
+            rightamount = ttk.Entry(rightplayerframe, validate="key", validatecommand=(reg, '%P'))
             rightamount.place(height=20, width=rightplayerframe.winfo_width() * 0.33,
                               x=rightplayerframe.winfo_width() * 0.66,
                               y=20)
@@ -890,7 +890,13 @@ def refreshUI():
         styleselect = ttk.Combobox(mainframe, values=style.theme_names())
         styleselect.bind('<<ComboboxSelected>>', lambda _: select_theme(styleselect.get()))
         styleselect.grid(row=4, column=0, sticky='ew')
-        startButton = ttk.Button(diceframe, text="Begin", command=lambda: startbattle(int(rangeentry.get())))
+        turnlimitlabel = ttk.Label(mainframe, text = "Ustal limit tur (zostaw 0 by zostawić bez limitu)")
+        turnlimitlabel.grid(row = 2, column=1, sticky='ew')
+        turnlimitentry = ttk.Entry(mainframe, validate="key", validatecommand=(reg, '%P'))
+        turnlimitentry.insert(END, 0)
+        turnlimitentry.grid(row=3, column=1, sticky='ew')
+        startButton = ttk.Button(diceframe, text="Begin", command=lambda: startbattle(int(rangeentry.get()),
+                                 int(turnlimitentry.get())))
         startButton.place(x=0, y=0, width=diceframe.winfo_width(), height=diceframe.winfo_height())
         status = 'selection'
         phaselabel['text'] = 'Game configuration'
@@ -907,9 +913,15 @@ def refreshUI():
         clearFrame(leftplayerframe)
         clearFrame(rightplayerframe)
         clearFrame(diceframe)
-        distlabel = ttk.Label(diceframe, text=f"distance = {distance}",  font=("Arial", 60), anchor="center")
-        distlabel.pack(fill=BOTH)
+        #distlabel = ttk.Label(diceframe, text=f"distance = {distance}",  font=("Arial", 60), anchor="center")
+        #distlabel.pack(fill=BOTH)
 
+        distdisp = Canvas(diceframe, background = '#464646')
+        s = ThemedStyle()
+        distdisp.create_text(int(diceframe.winfo_width()/2),20, fill="#a6a6a6", font="Times 20 italic bold",
+                           text=f"{distance}\"")
+        distdisp.create_line(0, int(diceframe.winfo_height()/2), int(diceframe.winfo_width()), int(diceframe.winfo_height()/2), arrow=BOTH, fill = 'white')
+        distdisp.pack(fill=BOTH)
         # print(distance)
         if phase == 'movement':
             moveVar.set(1)
@@ -937,7 +949,7 @@ def refreshUI():
             minmovelabel.grid(row=1, column=1, sticky='ew')
             maxmovelabel.grid(row=1, column=2, sticky='ew')
             reg = mainframe.register(callback)
-            distanceentry = ttk.Entry(mainframe, state='disabled', validatecommand=(reg, '%P'))
+            distanceentry = ttk.Entry(mainframe, state='disabled',validate = "key", validatecommand=(reg, '%P'))
             distanceentry.grid(row=2, column=1, columnspan=2, sticky='ew')
             confirmdistance = ttk.Button(mainframe, text='move', command=lambda: confirmmovedist(activeplayer))
             confirmdistance.grid(row=3, column=1, columnspan=2, sticky='ew')
@@ -1161,10 +1173,6 @@ def refreshUI():
                 for i in player1.models:
                     leftmodellist.insert(parent='', index='end', iid=a, values=(i.type.name, i.wounds, i.type.maxw))
                     a += 1
-                # confirmresultsbutton = ttk.Button(diceframe, command=lambda: switchPlayer())
-                # confirmresultsbutton.pack(fill=BOTH)
-            if phase == 'summary':
-                pass
     if status == 'summary':
         clearFrame(mainframe)
         clearFrame(leftplayerframe)
@@ -1176,6 +1184,12 @@ def refreshUI():
             victor = player2
         if player2.unitcount == 0:
             victor = player1
+        if player1.points_lost > player2.points_lost:
+            victor = player2
+        elif player1.points_lost < player2.points_lost:
+            victor = player1
+        else:
+            victor = secondplayer
         playerlabel['text'] = f'{victor} victory'
         leftmodellist = ttk.Treeview(leftplayerframe)
         leftmodellist.tag_configure('destroyed', background='red')
@@ -1230,7 +1244,7 @@ def reset():
     clearFrame(diceframe)
     clearFrame(leftplayerframe)
     clearFrame(rightplayerframe)
-    logtext['text'] = ''
+    logtext.delete('1.0', END)
     loadResources()
     refreshUI()
 
@@ -1266,8 +1280,8 @@ def set_math():
     mathhammer = bool(Var1.get())
 
 
-def startbattle(startdist):
-    global firstplayer, secondplayer, status, phase, activeplayer, distance
+def startbattle(startdist, turnlimit):
+    global firstplayer, secondplayer, status, phase, activeplayer, distance, maxturns
     if player1.state != 'ready' or player2.state != 'ready':
         messagebox.showwarning(title='brak jednostek', message='obie strony muszą wybrać jdenostki')
         return
@@ -1280,6 +1294,7 @@ def startbattle(startdist):
     status = 'game'
     phase = 'movement'
     distance = startdist
+    maxturns = turnlimit
     activeplayer = firstplayer
     refreshUI()
 
